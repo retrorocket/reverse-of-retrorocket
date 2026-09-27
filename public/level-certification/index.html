@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Technic Beat 段位評価点計算機</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #101827;
+        color: #edf2fa;
+        font-family: system-ui, sans-serif;
+        line-height: 1.65;
+      }
+      main {
+        max-width: 1100px;
+        margin: auto;
+        padding: 32px 20px;
+      }
+      h1 {
+        font-size: clamp(23px, 4vw, 32px);
+        margin: 0;
+      }
+      p {
+        color: #b8c5d9;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        color: #cbd7e9;
+      }
+      select,
+      input,
+      button {
+        font: inherit;
+        color: inherit;
+        border: 1px solid #53647f;
+        background: #111d30;
+        border-radius: 8px;
+        padding: 9px;
+        width: 100%;
+        margin: 5px 0 14px;
+      }
+      input[type="checkbox"] {
+        width: auto;
+        margin-right: 8px;
+      }
+      button {
+        cursor: pointer;
+        width: auto;
+        padding: 10px 20px;
+        background: #244b80;
+      }
+      select:focus,
+      input:focus,
+      button:focus {
+        outline: 2px solid #75caff;
+        outline-offset: 2px;
+      }
+      .top {
+        display: flex;
+        gap: 20px;
+        align-items: end;
+        flex-wrap: wrap;
+      }
+      .top label {
+        width: 240px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .card,
+      .total {
+        background: #1a2840;
+        border: 1px solid #34465f;
+        border-radius: 14px;
+        padding: 20px;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 0 0 16px;
+      }
+      .score {
+        font-size: 30px;
+        font-weight: 750;
+        color: #8cddff;
+      }
+      .total {
+        margin: 24px 0;
+        background: #183754;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      .total .score {
+        font-size: 40px;
+      }
+      details {
+        margin-top: 12px;
+      }
+      summary {
+        cursor: pointer;
+        color: #b9dcff;
+      }
+      .breakdown {
+        font-size: 14px;
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 5px;
+      }
+      .breakdown span:nth-child(even) {
+        font-variant-numeric: tabular-nums;
+      }
+      .note {
+        font-size: 13px;
+      }
+      .error {
+        color: #ffb4b4;
+      }
+      footer {
+        margin-top: 24px;
+        color: #b8c5d9;
+        font-size: 13px;
+      }
+      @media (max-width: 760px) {
+        .cards {
+          grid-template-columns: 1fr;
+        }
+        .total {
+          align-items: start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Technic Beat 段位評価点計算機</h1>
+      <p>難易度と最大CHAIN数を選んで、全大JUST時の点数を計算します。</p>
+      <div class="top">
+        <label>使用キャラクター<select id="character"></select></label
+        ><button id="example" type="button">前回の3曲を入力</button
+        ><button id="reset" type="button">初期値に戻す</button>
+      </div>
+      <div class="cards" id="cards"></div>
+      <section class="total" aria-live="polite">
+        <div>
+          3曲合計の試算
+          <div class="note">各曲のJudgePointを整数化した概算</div>
+        </div>
+        <output class="score" id="total"></output>
+      </section>
+      <p id="error" class="error" role="alert"></p>
+      <details>
+        <summary>計算の前提と注意点</summary>
+        <p>
+          初期設定は「全大JUST・クリア成功・終了時インジケーター最大・スーパーアクションの減点なし・JudgePoint
+          240」です。通常のプレイ結果を入れる場合は各曲の詳細設定を変更してください。
+        </p>
+        <p>
+          ゲームは3曲を順番に加算しながら浮動小数点処理と整数化を行います。このアプリは各曲のJudgePointを0方向へ切り捨てて計算する概算です。JudgePointはビートマーカーをすべて反応させなかった場合小さくなります。
+        </p>
+        <p>クリア失敗時の減点処理はこのアプリでは扱いません。</p>
+      </details>
+      <footer>ブラウザーだけで動作し、入力データを送信しません。</footer>
+    </main>
+    <script src="calculator.js"></script>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const characters = Object.keys(DanCalculator.characters);
+      $("character").innerHTML = characters
+        .map((c) => `<option>${c}</option>`)
+        .join("");
+      $("character").value = "WILLIE";
+      for (let i = 0; i < 3; i++) {
+        const card = document.createElement("section");
+        card.className = "card";
+        card.innerHTML = `<h2>${i + 1}曲目</h2>
+ <label>曲名（任意）<input id="name${i}" placeholder="曲名を入力"></label>
+ <label>選択した曲の難易度<select id="level${i}">${Array.from({ length: 8 }, (_, n) => `<option value="${n + 1}" ${n === 7 ? "selected" : ""}>★${n + 1}</option>`).join("")}</select></label>
+ <label>最大CHAIN数<input id="chain${i}" type="number" min="0" max="32767" step="1" value="0"></label>
+ <output class="score" id="score${i}"></output>
+ <details><summary>詳細設定</summary>
+ <label>JudgePoint（実測値を入力可能）<input id="judge${i}" type="number" step="any" value="240"></label>
+ <label>判定ボーナス条件<select id="grade${i}"><option value="big">全大JUST</option><option value="just">全JUST（小JUSTを含む）</option><option value="great">全GREAT以上</option><option value="noBad">NO BADのみ</option><option value="bad">BADあり</option></select></label>
+ <label><input id="indicator${i}" type="checkbox" checked>終了時インジケーター最大</label>
+ <label>採点上のスーパーアクション消費量<input id="sa${i}" type="number" min="-124" max="131" step="1" value="0"></label>
+ </details><div class="breakdown" id="breakdown${i}"></div>`;
+        $("cards").append(card);
+      }
+      function update() {
+        let total = 0,
+          invalid = false;
+        for (let i = 0; i < 3; i++) {
+          const inputs = ["chain", "judge", "sa"].map((k) => $(k + i));
+          if (inputs.some((e) => e.value === "" || !e.checkValidity())) {
+            invalid = true;
+            $("score" + i).textContent = "入力を確認";
+            $("breakdown" + i).textContent = "";
+            continue;
+          }
+          const r = DanCalculator.calculate({
+            character: $("character").value,
+            level: +$("level" + i).value,
+            chain: +$("chain" + i).value,
+            judge: +$("judge" + i).value,
+            grade: $("grade" + i).value,
+            indicator: $("indicator" + i).checked,
+            sa: +$("sa" + i).value,
+          });
+          total += r.score;
+          $("score" + i).textContent = r.score.toLocaleString() + " 点";
+          const rows = [
+            ["JudgePoint（整数化）", r.judge],
+            ["基礎点", r.base],
+            ["判定ボーナス", r.result],
+            ["インジケーター", r.indicator],
+            ["CHAIN × " + r.chainCoefficient, r.chain],
+            ["スーパーアクション消費", r.sa],
+          ];
+          $("breakdown" + i).innerHTML = rows
+            .map(
+              ([k, v]) => `<span>${k}</span><span>${v.toLocaleString()}</span>`,
+            )
+            .join("");
+        }
+        $("total").textContent = invalid ? "—" : total.toLocaleString() + " 点";
+        $("error").textContent = invalid
+          ? "CHAINとSA消費量は範囲内の整数、JudgePointは数値で入力してください。"
+          : "";
+      }
+      document.querySelector("main").addEventListener("input", update);
+      $("reset").onclick = () => {
+        location.reload();
+      };
+      $("example").onclick = () => {
+        $("character").value = "WILLIE";
+        ["Xevious", "Roteen da Moon (N)", "Roteen da Moon (H)"].forEach(
+          (n, i) => {
+            $("name" + i).value = n;
+            $("level" + i).value = [5, 7, 8][i];
+            $("chain" + i).value = [163, 167, 168][i];
+            $("judge" + i).value = 240;
+            $("grade" + i).value = "big";
+            $("indicator" + i).checked = true;
+            $("sa" + i).value = 0;
+          },
+        );
+        update();
+      };
+      update();
+    </script>
+  </body>
+</html>
