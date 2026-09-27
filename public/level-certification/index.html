@@ -146,7 +146,7 @@
       <p>難易度と最大CHAIN数を選んで、全大JUST時の点数を計算します。</p>
       <div class="top">
         <label>使用キャラクター<select id="character"></select></label
-        ><button id="example" type="button">前回の3曲を入力</button
+        ><button id="example" type="button">入力例を入力する</button
         ><button id="reset" type="button">初期値に戻す</button>
       </div>
       <div class="cards" id="cards"></div>
@@ -178,7 +178,7 @@
       $("character").innerHTML = characters
         .map((c) => `<option>${c}</option>`)
         .join("");
-      $("character").value = "WILLIE";
+      $("character").value = "KNITTY";
       for (let i = 0; i < 3; i++) {
         const card = document.createElement("section");
         card.className = "card";
